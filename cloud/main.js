@@ -21,6 +21,32 @@ Parse.Cloud.beforeSave(Parse.User, function(request, response) {
   }
 });
 
+Parse.Cloud.afterSave(Parse.User, function(request, response) {
+  const { object: user, log } = request;
+  log.info('Custom log -> Parse.Cloud.afterSave(Parse.User, function(request){})');
+
+  let defaultCategoryNames = ['_archive', 'front-channel', 'back-channel', 'r', 'o', 'y', 'g', 'b', 'i', 'v', 'p'];
+  const categories = [];
+  for (categoryName in defaultCategoryNames) {
+    const category = new Parse.Object('Category');
+    category.save({
+      owner: user,
+      name: categoryName
+    }).then(function(savedCategory) {
+      categories.append(savedCategory);
+    })
+    .catch(log.error.bind(log)); // Category abandoned if not saved
+  }
+  
+  const query = new Parse.Query(Parse.User);
+  query.equalTo('user', user);
+  return query.first({ userMasterKey: true }).then((result) => {
+    result.set('categories', categories);
+    return result.save(null, { userMasterKey: true });
+  })
+  .catch(log.error.bind(log));
+});
+
 /*
 Parse.Cloud.beforeSave('Plan', function(request, response) {
   if (!request.object.get('plan')) {
