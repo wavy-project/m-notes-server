@@ -42,9 +42,14 @@ Parse.Cloud.afterSave(Parse.User, function(request, response) {
   query.equalTo('user', user);
   return query.first({ userMasterKey: true }).then((result) => {
     result.set('categories', categories);
-    return result.save(null, { userMasterKey: true });
-  })
-  .catch(log.error.bind(log));
+    return result.save(null, { userMasterKey: true }).then(function(savedCategory) {
+      response.success();
+    }, function(error) {
+      response.error(log.error.bind(log));
+    });
+  }, function(error) {
+    response.error(log.error.bind(log));
+  });
 });
 
 /*
